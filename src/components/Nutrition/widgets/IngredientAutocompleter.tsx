@@ -27,6 +27,7 @@ import {
 import { Ingredient } from "@/components/Nutrition/models/Ingredient";
 import { useSearchIngredientQuery } from "@/components/Nutrition/queries";
 import { NutriScoreBadge } from "@/components/Nutrition/widgets/NutriScoreBadge";
+import { useProfileQuery } from "@/components/User/queries/profile";
 import debounce from "lodash/debounce";
 import * as React from 'react';
 import { useEffect, useMemo, useState } from 'react';
@@ -62,6 +63,10 @@ export function IngredientAutocompleter({ callback, initialIngredient }: Ingredi
     const initialData = initialIngredient ?? null;
     const [t, i18n] = useTranslation();
 
+    const { data: profile } = useProfileQuery();
+    const profileLanguages = profile?.ingredientLanguages ?? [];
+    const profileLangKey = profileLanguages.join(',');
+
     const defaultLanguageFilter: SearchLanguageFilter =
         i18n.language === LANGUAGE_SHORT_ENGLISH ? "current" : "current_english";
 
@@ -86,6 +91,7 @@ export function IngredientAutocompleter({ callback, initialIngredient }: Ingredi
     const [value, setValue] = useState<Ingredient | null>(initialData);
     const [inputValue, setInputValue] = useState("");
     const [options, setOptions] = useState<readonly Ingredient[]>([]);
+    const [isLoading, setIsLoading] = useState(false);
 
     useEffect(() => {
         if (i18n.language === LANGUAGE_SHORT_ENGLISH && languageFilter === "current_english") {
@@ -149,28 +155,49 @@ export function IngredientAutocompleter({ callback, initialIngredient }: Ingredi
                     searchIngredient(request, {
                         languageCode: i18n.language,
                         languageFilter,
+                        explicitLanguageCodes: profileLanguages.length > 0 ? profileLanguages : undefined,
                         isVegan: filterVegan || undefined,
                         isVegetarian: filterVegetarian || undefined,
                         nutriscoreMax: nutriscoreMax ?? undefined,
                         useSimilarSearch: similarSearch || undefined,
-                    }).then((res) => setOptions(res)),
+                    }).then((res) => {
+                        setOptions(res);
+                        setIsLoading(false);
+                    }).catch(() => {
+                        setIsLoading(false);
+                    }),
                 SEARCH_DEBOUNCE_MS
             ),
-        [searchIngredient, i18n.language, languageFilter, filterVegan, filterVegetarian, nutriscoreMax, similarSearch]
+        // profileLangKey is used instead of profileLanguages to avoid referential inequality
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+        [searchIngredient, i18n.language, languageFilter, profileLangKey, filterVegan, filterVegetarian, nutriscoreMax, similarSearch]
     );
 
     useEffect(() => {
         if (inputValue === "") {
             setOptions(value ? [value] : []);
+            setIsLoading(false);
             return undefined;
         }
 
+        if (inputValue.length < 3) {
+            setOptions([]);
+            setIsLoading(false);
+            fetchName.cancel();
+            return undefined;
+        }
+
+        setIsLoading(true);
         fetchName(inputValue);
 
         return () => {
             fetchName.cancel();
         };
     }, [value, inputValue, fetchName]);
+
+    const noOptionsText = inputValue.length > 0 && inputValue.length < 3
+        ? t("nutrition.typeAtLeast3Chars")
+        : t("noResults");
 
     const isFiltersOpen = Boolean(filtersAnchorEl);
     const filtersPopoverId = isFiltersOpen ? "ingredient-filters-popover" : undefined;
@@ -187,7 +214,9 @@ export function IngredientAutocompleter({ callback, initialIngredient }: Ingredi
                 includeInputInList
                 filterSelectedOptions
                 value={value}
-                noOptionsText={t("noResults")}
+                loading={isLoading}
+                loadingText={t("nutrition.searching")}
+                noOptionsText={noOptionsText}
                 isOptionEqualToValue={(option, value) => option.id === value.id}
                 onChange={(event: unknown, newValue: Ingredient | null) => {
                     setOptions(newValue ? [newValue, ...options] : options);
@@ -296,23 +325,29 @@ export function IngredientAutocompleter({ callback, initialIngredient }: Ingredi
                 transformOrigin={{ vertical: "top", horizontal: "right" }}
             >
                 <Stack sx={{ padding: 2 }} spacing={1}>
-                    <FormControl fullWidth size="small">
-                        <InputLabel id="ingredient-language-filter-label">
-                            {t("language")}
-                        </InputLabel>
-                        <Select
-                            labelId="ingredient-language-filter-label"
-                            value={languageFilter}
-                            label={t("language")}
-                            onChange={(event) => setLanguageFilter(event.target.value as SearchLanguageFilter)}
-                        >
-                            {languageOptions.map((option) => (
-                                <MenuItem key={option.value} value={option.value}>
-                                    {option.label}
-                                </MenuItem>
-                            ))}
-                        </Select>
-                    </FormControl>
+                    {profileLanguages.length > 0 ? (
+                        <Typography variant="caption" color="text.secondary" sx={{ maxWidth: 240 }}>
+                            {t("nutrition.languageFilterFromProfile")}
+                        </Typography>
+                    ) : (
+                        <FormControl fullWidth size="small">
+                            <InputLabel id="ingredient-language-filter-label">
+                                {t("language")}
+                            </InputLabel>
+                            <Select
+                                labelId="ingredient-language-filter-label"
+                                value={languageFilter}
+                                label={t("language")}
+                                onChange={(event) => setLanguageFilter(event.target.value as SearchLanguageFilter)}
+                            >
+                                {languageOptions.map((option) => (
+                                    <MenuItem key={option.value} value={option.value}>
+                                        {option.label}
+                                    </MenuItem>
+                                ))}
+                            </Select>
+                        </FormControl>
+                    )}
 
                     <FormGroup row>
                         <FormControlLabel

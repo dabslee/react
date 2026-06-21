@@ -20,6 +20,7 @@ export class Profile {
     public height: number;
     public weightRounding: number | null;
     public repetitionsRounding: number | null;
+    public ingredientLanguages: string[];
 
     constructor(data: {
         username: string,
@@ -31,6 +32,7 @@ export class Profile {
         height: number,
         weightRounding: number | null,
         repetitionsRounding: number | null,
+        ingredientLanguages: string[],
     }) {
         this.username = data.username;
         this.email = data.email;
@@ -41,6 +43,7 @@ export class Profile {
         this.height = data.height;
         this.weightRounding = data.weightRounding;
         this.repetitionsRounding = data.repetitionsRounding;
+        this.ingredientLanguages = data.ingredientLanguages;
     }
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -65,6 +68,7 @@ class ProfileAdapter implements Adapter<Profile> {
         height: item.height,
         weightRounding: item.weight_rounding !== null ? parseFloat(item.weight_rounding) : null,
         repetitionsRounding: item.repetitions_rounding !== null ? parseFloat(item.repetitions_rounding) : null,
+        ingredientLanguages: Array.isArray(item.ingredient_languages) ? item.ingredient_languages : [],
     });
 
 

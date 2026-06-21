@@ -12,6 +12,8 @@ export type IngredientLanguageFilter = SearchLanguageFilter;
 export interface IngredientSearchFilters {
     languageCode: string;
     languageFilter?: IngredientLanguageFilter;
+    /** Explicit language short-codes from the user's profile. When non-empty, overrides languageFilter. */
+    explicitLanguageCodes?: string[];
     isVegan?: boolean;
     isVegetarian?: boolean;
     /** Worst acceptable Nutri-Score grade; sent as `nutriscore__lte`. */
@@ -64,15 +66,21 @@ export const searchIngredient = async (
     const {
         languageCode,
         languageFilter = "current_english",
+        explicitLanguageCodes,
         isVegan,
         isVegetarian,
         nutriscoreMax,
         useSimilarSearch = false,
     } = filters;
 
-    const languages = languageFilter === "all" ? null : [languageCode];
-    if (languages && languageFilter === "current_english" && languageCode !== LANGUAGE_SHORT_ENGLISH) {
-        languages.push(LANGUAGE_SHORT_ENGLISH);
+    let languages: string[] | null;
+    if (explicitLanguageCodes && explicitLanguageCodes.length > 0) {
+        languages = explicitLanguageCodes;
+    } else {
+        languages = languageFilter === "all" ? null : [languageCode];
+        if (languages && languageFilter === "current_english" && languageCode !== LANGUAGE_SHORT_ENGLISH) {
+            languages.push(LANGUAGE_SHORT_ENGLISH);
+        }
     }
 
     const searchParam = useSimilarSearch ? 'name__similar' : 'name__search';
