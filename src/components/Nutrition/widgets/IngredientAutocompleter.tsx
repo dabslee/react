@@ -44,6 +44,7 @@ export const STORAGE_KEY_LANGUAGE_FILTER = "wger.ingredientSearch.languageFilter
 export const STORAGE_KEY_VEGAN = "wger.ingredientSearch.filterVegan";
 export const STORAGE_KEY_VEGETARIAN = "wger.ingredientSearch.filterVegetarian";
 export const STORAGE_KEY_NUTRISCORE_MAX = "wger.ingredientSearch.filterNutriscoreMax";
+export const STORAGE_KEY_SIMILAR_SEARCH = "wger.ingredientSearch.similarSearch";
 export const SEARCH_DEBOUNCE_MS = 400;
 
 const NUTRISCORE_OFF_INDEX = 0;
@@ -78,6 +79,9 @@ export function IngredientAutocompleter({ callback, initialIngredient }: Ingredi
         const stored = localStorage.getItem(STORAGE_KEY_NUTRISCORE_MAX);
         return isNutriScoreValue(stored) ? stored : null;
     });
+    const [similarSearch, setSimilarSearch] = useState<boolean>(() => {
+        return localStorage.getItem(STORAGE_KEY_SIMILAR_SEARCH) === "true";
+    });
     const [filtersAnchorEl, setFiltersAnchorEl] = useState<HTMLElement | null>(null);
     const [value, setValue] = useState<Ingredient | null>(initialData);
     const [inputValue, setInputValue] = useState("");
@@ -108,6 +112,10 @@ export function IngredientAutocompleter({ callback, initialIngredient }: Ingredi
             localStorage.setItem(STORAGE_KEY_NUTRISCORE_MAX, nutriscoreMax);
         }
     }, [nutriscoreMax]);
+
+    useEffect(() => {
+        localStorage.setItem(STORAGE_KEY_SIMILAR_SEARCH, String(similarSearch));
+    }, [similarSearch]);
 
     const languageOptions = useMemo(() => {
         const options: Array<{ value: SearchLanguageFilter; label: string }> = [
@@ -144,10 +152,11 @@ export function IngredientAutocompleter({ callback, initialIngredient }: Ingredi
                         isVegan: filterVegan || undefined,
                         isVegetarian: filterVegetarian || undefined,
                         nutriscoreMax: nutriscoreMax ?? undefined,
+                        useSimilarSearch: similarSearch || undefined,
                     }).then((res) => setOptions(res)),
                 SEARCH_DEBOUNCE_MS
             ),
-        [searchIngredient, i18n.language, languageFilter, filterVegan, filterVegetarian, nutriscoreMax]
+        [searchIngredient, i18n.language, languageFilter, filterVegan, filterVegetarian, nutriscoreMax, similarSearch]
     );
 
     useEffect(() => {
@@ -326,6 +335,18 @@ export function IngredientAutocompleter({ callback, initialIngredient }: Ingredi
                                 />
                             }
                             label={t("nutrition.filterVegetarian")}
+                        />
+                    </FormGroup>
+
+                    <FormGroup row>
+                        <FormControlLabel
+                            control={
+                                <Switch
+                                    checked={similarSearch}
+                                    onChange={(event, checked) => setSimilarSearch(checked)}
+                                />
+                            }
+                            label={t("nutrition.filterSimilarSearch")}
                         />
                     </FormGroup>
 

@@ -16,6 +16,8 @@ export interface IngredientSearchFilters {
     isVegetarian?: boolean;
     /** Worst acceptable Nutri-Score grade; sent as `nutriscore__lte`. */
     nutriscoreMax?: NutriScoreValue;
+    /** Use trigram-similarity search (`name__similar`) instead of substring (`name__search`). */
+    useSimilarSearch?: boolean;
 }
 
 
@@ -65,6 +67,7 @@ export const searchIngredient = async (
         isVegan,
         isVegetarian,
         nutriscoreMax,
+        useSimilarSearch = false,
     } = filters;
 
     const languages = languageFilter === "all" ? null : [languageCode];
@@ -72,8 +75,9 @@ export const searchIngredient = async (
         languages.push(LANGUAGE_SHORT_ENGLISH);
     }
 
+    const searchParam = useSimilarSearch ? 'name__similar' : 'name__search';
     const query: Record<string, string | number> = {
-        'name__search': name,
+        [searchParam]: name,
         'limit': API_RESULTS_PAGE_SIZE,
     };
     if (languages) {

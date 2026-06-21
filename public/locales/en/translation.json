@@ -155,6 +155,7 @@
     "filterNutriscoreOff": "Off",
     "filterNutriscoreNoFilter": "No filter",
     "filterNutriscoreOrBetter": "{{grade}} or better",
+    "filterSimilarSearch": "Fuzzy / similarity search",
     "macronutrient": "Macronutrient",
     "percentEnergy": "Percent of energy",
     "gPerBodyKg": "g per body-kg",
