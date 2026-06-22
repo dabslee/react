@@ -4,21 +4,31 @@ import { DateTime, DateTimeFormatOptions } from "luxon";
 
 
 export function isSameDay(date1: Date, date2: Date): boolean {
-    // Compare UTC dates to stay consistent with how Django stores and filters
-    // datetimes (always UTC). Using local getDate() would mismatch the server's
-    // datetime__date filter near midnight for users west of UTC.
     return (
-        date1.getUTCFullYear() === date2.getUTCFullYear() &&
-        date1.getUTCMonth() === date2.getUTCMonth() &&
-        date1.getUTCDate() === date2.getUTCDate()
+        date1.getFullYear() === date2.getFullYear() &&
+        date1.getMonth() === date2.getMonth() &&
+        date1.getDate() === date2.getDate()
     );
 }
 
 /*
- * Util function that converts a date to a YYYY-MM-DD string
+ * Util function that converts a date to a YYYY-MM-DD string using local time.
  */
 export function dateToYYYYMMDD(date: Date): string {
-    return date.toISOString().split('T')[0];
+    const y = date.getFullYear();
+    const m = String(date.getMonth() + 1).padStart(2, '0');
+    const d = String(date.getDate()).padStart(2, '0');
+    return `${y}-${m}-${d}`;
+}
+
+/*
+ * Returns the UTC ISO timestamps for the start and end of a local calendar day,
+ * suitable for datetime__gte / datetime__lt filters on the Django side.
+ */
+export function localDayToUtcRange(date: Date): { gte: string; lt: string } {
+    const start = new Date(date.getFullYear(), date.getMonth(), date.getDate(), 0, 0, 0, 0);
+    const end = new Date(date.getFullYear(), date.getMonth(), date.getDate() + 1, 0, 0, 0, 0);
+    return { gte: start.toISOString(), lt: end.toISOString() };
 }
 
 
