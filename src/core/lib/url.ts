@@ -94,6 +94,7 @@ export enum WgerLink {
     NUTRITION_DIARY,
 
     INGREDIENT_DETAIL,
+    INGREDIENT_ADD,
 
     // Other
     CALENDAR,
@@ -190,6 +191,9 @@ export function makeLink(link: WgerLink, language?: string, params?: UrlParams):
 
         case WgerLink.INGREDIENT_DETAIL:
             return `/${language}/nutrition/ingredient/${params!.id}/view`;
+
+        case WgerLink.INGREDIENT_ADD:
+            return `/${language}/nutrition/ingredient/add/`;
 
         case WgerLink.TROPHIES:
             return `/${language}/trophies`;

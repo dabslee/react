@@ -158,6 +158,7 @@
     "filterSimilarSearch": "Fuzzy / similarity search",
     "searching": "Searching…",
     "typeAtLeast3Chars": "Type at least 3 characters to search",
+    "createIngredientWithBarcode": "Create new ingredient with this barcode",
     "languageFilterFromProfile": "Language filter is set in your profile preferences",
     "macronutrient": "Macronutrient",
     "percentEnergy": "Percent of energy",

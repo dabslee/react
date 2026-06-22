@@ -1,3 +1,4 @@
+import AddCircleOutlineIcon from "@mui/icons-material/AddCircleOutline";
 import PhotoIcon from "@mui/icons-material/Photo";
 import SearchIcon from "@mui/icons-material/Search";
 import TuneIcon from '@mui/icons-material/Tune';
@@ -12,6 +13,7 @@ import {
     IconButton,
     InputAdornment,
     InputLabel,
+    Link,
     ListItem,
     ListItemIcon,
     ListItemText,
@@ -25,6 +27,7 @@ import {
     Typography,
 } from "@mui/material";
 import { Ingredient } from "@/components/Nutrition/models/Ingredient";
+import { makeLink, WgerLink } from "@/core/lib/url";
 import { useSearchIngredientQuery } from "@/components/Nutrition/queries";
 import { NutriScoreBadge } from "@/components/Nutrition/widgets/NutriScoreBadge";
 import { useProfileQuery } from "@/components/User/queries/profile";
@@ -195,9 +198,25 @@ export function IngredientAutocompleter({ callback, initialIngredient }: Ingredi
         };
     }, [value, inputValue, fetchName]);
 
+    const isBarcodeInput = /^\d{8,14}$/.test(inputValue.trim());
+
     const noOptionsText = inputValue.length > 0 && inputValue.length < 3
         ? t("nutrition.typeAtLeast3Chars")
-        : t("noResults");
+        : isBarcodeInput && !isLoading
+            ? (
+                <Stack spacing={1}>
+                    <span>{t("noResults")}</span>
+                    <Link
+                        href={`${makeLink(WgerLink.INGREDIENT_ADD, i18n.language)}?code=${encodeURIComponent(inputValue.trim())}`}
+                        underline="hover"
+                        sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}
+                    >
+                        <AddCircleOutlineIcon fontSize="small" />
+                        {t("nutrition.createIngredientWithBarcode")}
+                    </Link>
+                </Stack>
+            )
+            : t("noResults");
 
     const isFiltersOpen = Boolean(filtersAnchorEl);
     const filtersPopoverId = isFiltersOpen ? "ingredient-filters-popover" : undefined;
