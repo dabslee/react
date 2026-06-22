@@ -1,13 +1,12 @@
 import react from '@vitejs/plugin-react';
 import { defineConfig } from 'vite';
 import eslintPlugin from '@nabla/vite-plugin-eslint';
+import tsconfigPaths from 'vite-tsconfig-paths';
 
 export default defineConfig(({ mode }) => {
     const isTest = mode === 'test' || process.env.VITEST;
     return {
-        resolve: {
-            tsconfigPaths: true
-        },
+        resolve: {},
         build: {
             outDir: 'build',
             sourcemap: true,
@@ -24,6 +23,7 @@ export default defineConfig(({ mode }) => {
             port: 3000,
         },
         plugins: [
+            tsconfigPaths(),
             react({
                 jsxImportSource: '@emotion/react',
             }),

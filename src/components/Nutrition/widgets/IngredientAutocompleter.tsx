@@ -1,4 +1,4 @@
-import AddCircleOutlineIcon from "@mui/icons-material/AddCircleOutline";
+import AddCircleOutlineIcon from "@mui/icons-material/AddCircleOutlined";
 import PhotoIcon from "@mui/icons-material/Photo";
 import SearchIcon from "@mui/icons-material/Search";
 import TuneIcon from '@mui/icons-material/Tune';
