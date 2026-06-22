@@ -1,4 +1,5 @@
 import { Adapter } from "@/core/lib/Adapter";
+import { dateToYYYYMMDD, parseLocalDate } from "@/core/lib/date";
 
 export class MeasurementEntry {
 
@@ -28,7 +29,7 @@ class MeasurementEntryAdapter implements Adapter<MeasurementEntry> {
         return new MeasurementEntry(
             item.id,
             item.category,
-            new Date(item.date),
+            parseLocalDate(item.date),
             item.value,
             item.notes
         );
@@ -38,7 +39,7 @@ class MeasurementEntryAdapter implements Adapter<MeasurementEntry> {
         return {
             id: item.id,
             category: item.category,
-            date: item.date,
+            date: dateToYYYYMMDD(item.date),
             value: item.value,
             notes: item.notes
         };

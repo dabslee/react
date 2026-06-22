@@ -1,4 +1,5 @@
 import { Adapter } from "@/core/lib/Adapter";
+import { dateToYYYYMMDD, parseLocalDate } from "@/core/lib/date";
 
 export class WeightEntry {
 
@@ -23,7 +24,7 @@ class WeightAdapter implements Adapter<WeightEntry> {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     fromJson(item: any): WeightEntry {
         return new WeightEntry(
-            new Date(item.date),
+            parseLocalDate(item.date),
             parseFloat(item.weight),
             item.id,
         );
@@ -31,7 +32,7 @@ class WeightAdapter implements Adapter<WeightEntry> {
 
     toJson(item: WeightEntry) {
         return {
-            date: item.date.toISOString(),
+            date: dateToYYYYMMDD(item.date),
             weight: item.weight,
         };
     }

@@ -23,7 +23,7 @@ import { DateTime } from "luxon";
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { PAGINATION_OPTIONS } from "@/core/lib/consts";
-import { luxonDateTimeToLocale } from "@/core/lib/date";
+import { luxonDateTimeToLocale, parseLocalDate } from "@/core/lib/date";
 
 export interface WeightTableProps {
     weights: WeightEntry[];
@@ -72,7 +72,7 @@ export const WeightTable = ({ weights }: WeightTableProps) => {
     };
 
     const processRowUpdate = (newRow: GridRowModel) => {
-        const date = newRow.date instanceof Date ? newRow.date : new Date(newRow.date);
+        const date = parseLocalDate(newRow.date);
         editEntryQuery.mutate(new WeightEntry(date, Number(newRow.weight), Number(newRow.id)));
         return newRow;
     };

@@ -142,7 +142,7 @@ export class NutritionalPlan {
     get groupDiaryEntries(): Map<string, GroupedDiaryEntries> {
 
         return this.diaryEntries.reduce((map, entry) => {
-            const dateKey = entry.datetime.toISOString().split('T')[0]; // Use ISO string format as the key
+            const dateKey = dateToYYYYMMDD(entry.datetime);
             const entriesForDay = map.get(dateKey) || { entries: [], nutritionalValues: new NutritionalValues() };
             entriesForDay.entries.push(entry);
             entriesForDay.nutritionalValues.add(entry.nutritionalValues);

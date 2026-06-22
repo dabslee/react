@@ -9,7 +9,7 @@ import {
     getNutritionalPlansSparse
 } from "@/components/Nutrition/api/nutritionalPlan";
 import { QueryKey } from "@/core/lib/consts";
-import { localDayToUtcRange } from "@/core/lib/date";
+import { localDayToUtcRange, parseLocalDate } from "@/core/lib/date";
 
 export function useFetchNutritionalPlansQuery() {
     return useQuery({
@@ -41,7 +41,7 @@ export function useFetchNutritionalPlanDateQuery(planId: string | null, dateStr:
     return useQuery({
         queryKey: [QueryKey.NUTRITIONAL_PLAN, planId, dateStr],
         queryFn: () => {
-            const { gte, lt } = localDayToUtcRange(new Date(dateStr));
+            const { gte, lt } = localDayToUtcRange(parseLocalDate(dateStr));
             return getNutritionalPlanFull(planId, { filtersetQueryLogs: { "datetime__gte": gte, "datetime__lt": lt } });
         },
         enabled: enabled,

@@ -1,6 +1,6 @@
 import { Exercise, Language, Muscle } from "@/components/Exercises";
 import { GroupedLogData, LogData, RoutineStatsData } from "@/components/Routines/models/LogStats";
-import { dateToLocale } from "@/core/lib/date";
+import { dateToLocale, parseLocalDate } from "@/core/lib/date";
 import { FormControl, MenuItem, Select } from "@mui/material";
 import InputLabel from "@mui/material/InputLabel";
 import { SelectChangeEvent } from "@mui/material/Select";
@@ -203,7 +203,7 @@ export const getFullStatsData = (
                 calculateLoopSum(data, logData);
 
                 return {
-                    key: dateToLocale(new Date(date)),
+                    key: dateToLocale(parseLocalDate(date)),
                     values: allHeaders.map(header => data[calculateStatsData(selectedValueGroupBy, logData).headers.indexOf(header)])
                 };
             });

@@ -4,6 +4,7 @@ import { Exercise } from "@/components/Exercises";
 import { RepetitionUnit } from "@/components/Routines/models/RepetitionUnit";
 import { WeightUnit } from "@/components/Routines/models/WeightUnit";
 import { Adapter } from "@/core/lib/Adapter";
+import { dateToYYYYMMDD, parseLocalDate } from "@/core/lib/date";
 
 export interface LogEntryForm {
     exercise: Exercise | null;
@@ -75,7 +76,7 @@ export class WorkoutLog {
         restTimeTarget?: number | null
     }) {
         this.id = data.id;
-        this.date = typeof data.date === 'string' ? new Date(data.date) : data.date;
+        this.date = parseLocalDate(data.date);
         this.iteration = data.iteration;
         this.slotEntryId = data.slotEntryId;
         this.sessionId = data.sessionId || null;
@@ -137,7 +138,7 @@ export class WorkoutLogAdapter implements Adapter<WorkoutLog> {
     toJson = (item: WorkoutLog) => ({
         id: item.id,
         iteration: item.iteration,
-        date: item.date.toISOString(),
+        date: dateToYYYYMMDD(item.date),
         slot_entry: item.slotEntryId,
         exercise: item.exerciseId,
         routine: item.routineId,

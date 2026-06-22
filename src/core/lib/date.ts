@@ -3,6 +3,36 @@ import i18n from 'i18next';
 import { DateTime, DateTimeFormatOptions } from "luxon";
 
 
+/*
+ * Canonical converter for a date-only string into a Date.
+ *
+ * The whole app follows one rule: instants (datetimes) are stored in UTC and
+ * displayed in local time, while a bare calendar day (YYYY-MM-DD) has no
+ * timezone at all. The trap is that `new Date("2026-06-22")` parses as UTC
+ * midnight, so in any negative-offset timezone it reads back as the *previous*
+ * local day. Every date-only field must come through here instead so it lands
+ * on local midnight of the day it names.
+ *
+ * Full datetime strings (containing a time/offset) are genuine instants, so
+ * they are passed straight to `new Date()`, which resolves them correctly and
+ * is then displayed via local accessors (getHours/getDate/...).
+ */
+export function parseLocalDate(value: string | Date): Date {
+    if (value instanceof Date) {
+        return value;
+    }
+
+    // Date-only (YYYY-MM-DD): build local midnight explicitly.
+    const dateOnlyMatch = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
+    if (dateOnlyMatch) {
+        const [, y, m, d] = dateOnlyMatch;
+        return new Date(Number(y), Number(m) - 1, Number(d), 0, 0, 0, 0);
+    }
+
+    // Anything with a time component is an instant; new Date() handles it.
+    return new Date(value);
+}
+
 export function isSameDay(date1: Date, date2: Date): boolean {
     return (
         date1.getFullYear() === date2.getFullYear() &&
