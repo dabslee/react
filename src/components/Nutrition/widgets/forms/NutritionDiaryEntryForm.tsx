@@ -32,7 +32,7 @@ export const NutritionDiaryEntryForm = ({ planId, entry, mealId, meals, closeFn 
     const [t, i18n] = useTranslation();
     const addDiaryQuery = useAddDiaryEntryQuery(planId);
     const editDiaryQuery = useEditDiaryEntryQuery(planId);
-    const [dateValue, setDateValue] = useState<DateTime | null>(entry ? DateTime.fromJSDate(entry.datetime) : DateTime.now());
+    const [dateValue, setDateValue] = useState<DateTime | null>(entry ? DateTime.fromJSDate(entry.datetime, { zone: 'system' }) : DateTime.now().setZone('system'));
     const [selectedMeal, setSelectedMeal] = useState<string | null>(meal);
 
     const [selectedUnit, setSelectedUnit] = useState<NutritionWeightUnit | null>(entry?.weightUnit ?? null);
@@ -177,6 +177,7 @@ export const NutritionDiaryEntryForm = ({ planId, entry, mealId, meals, closeFn 
                                 format="yyyy-MM-dd HH:mm"
                                 label={t('date')}
                                 value={dateValue}
+                                timezone="system"
                                 disableFuture={true}
                                 onChange={(newValue) => {
                                     formik.setFieldValue('datetime', newValue?.toJSDate());

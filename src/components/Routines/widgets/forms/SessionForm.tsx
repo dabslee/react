@@ -173,6 +173,7 @@ export const SessionForm = ({ initialSession, dayId, routineId, selectedDate, se
                             <LocalizationProvider dateAdapter={AdapterLuxon} adapterLocale={i18n.language}>
                                 <TimePicker
                                     label={t('start')}
+                                    timezone="system"
                                     {...formik.getFieldProps('start')}
                                     onChange={(newValue) => {
                                         if (newValue) {
@@ -194,6 +195,7 @@ export const SessionForm = ({ initialSession, dayId, routineId, selectedDate, se
                             <LocalizationProvider dateAdapter={AdapterLuxon} adapterLocale={i18n.language}>
                                 <TimePicker
                                     label={t('end')}
+                                    timezone="system"
                                     {...formik.getFieldProps('end')}
                                     onChange={(newValue) => {
                                         if (newValue) {

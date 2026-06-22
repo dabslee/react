@@ -30,7 +30,7 @@ export const EntryForm = ({ entry, closeFn, categoryId }: EntryFormProps) => {
     const useEditEntryQuery = useEditMeasurementEntryQuery();
     const categoryQuery = useMeasurementsQuery(categoryId);
 
-    const [dateValue, setDateValue] = React.useState<DateTime | null>(entry ? DateTime.fromJSDate(entry.date) : DateTime.now());
+    const [dateValue, setDateValue] = React.useState<DateTime | null>(entry ? DateTime.fromJSDate(entry.date, { zone: 'system' }) : DateTime.now().setZone('system'));
 
     const validationSchema = yup.object({
         value: yup
@@ -89,6 +89,7 @@ export const EntryForm = ({ entry, closeFn, categoryId }: EntryFormProps) => {
                                 <DateTimePicker
                                     label={t('date')}
                                     value={dateValue}
+                                    timezone="system"
                                     slotProps={{ textField: { variant: 'outlined' } }}
                                     disableFuture={true}
                                     onChange={(newValue) => {

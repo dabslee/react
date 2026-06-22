@@ -21,7 +21,7 @@ export const WeightForm = ({ weightEntry, closeFn }: WeightFormProps) => {
     const addWeightQuery = useAddWeightEntryQuery();
     const editWeightQuery = useEditWeightEntryQuery();
 
-    const [dateValue, setDateValue] = useState<DateTime | null>(weightEntry ? DateTime.fromJSDate(weightEntry.date) : DateTime.now);
+    const [dateValue, setDateValue] = useState<DateTime | null>(weightEntry ? DateTime.fromJSDate(weightEntry.date, { zone: 'system' }) : DateTime.now().setZone('system'));
     const [t, i18n] = useTranslation();
 
     const validationSchema = yup.object({
@@ -78,6 +78,7 @@ export const WeightForm = ({ weightEntry, closeFn }: WeightFormProps) => {
                             <DateTimePicker
                                 label={t('date')}
                                 value={dateValue}
+                                timezone="system"
                                 slotProps={{ textField: { variant: 'outlined' } }}
                                 disableFuture={true}
                                 onChange={(newValue) => {
