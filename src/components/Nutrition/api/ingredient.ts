@@ -106,3 +106,50 @@ export const searchIngredient = async (
     const { data } = await axios.get(url, { headers: makeHeader() },);
     return data.results.map((entry: ApiIngredientType) => Ingredient.fromJson(entry));
 };
+
+
+export interface OffSearchResult {
+    code: string;
+    name: string;
+    brand: string | null;
+    imageUrl: string | null;
+    nutriscore: NutriScoreValue | null;
+    energy: number | null;
+    existsLocally: boolean;
+}
+
+export interface OffSearchResponse {
+    results: OffSearchResult[];
+    hasMore: boolean;
+    page: number;
+}
+
+/*
+ * Search Open Food Facts by product name (not barcode). Returns lightweight
+ * previews used to add ingredients that aren't in the local catalogue yet.
+ */
+export const searchIngredientOff = async (
+    query: string,
+    page = 1,
+): Promise<OffSearchResponse> => {
+    const url = makeUrl(ApiPath.INGREDIENT_PATH, {
+        objectMethod: 'off-search',
+        query: { q: query, page },
+    });
+    const { data } = await axios.get(url, { headers: makeHeader() });
+
+    return {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        results: (data.results ?? []).map((r: any) => ({
+            code: r.code,
+            name: r.name,
+            brand: r.brand ?? null,
+            imageUrl: r.image_url ?? null,
+            nutriscore: r.nutriscore ?? null,
+            energy: r.energy ?? null,
+            existsLocally: r.exists_locally ?? false,
+        })),
+        hasMore: data.has_more ?? false,
+        page: data.page ?? page,
+    };
+};

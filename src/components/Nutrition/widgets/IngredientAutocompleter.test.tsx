@@ -9,7 +9,7 @@ import {
     STORAGE_KEY_VEGETARIAN
 } from '@/components/Nutrition/widgets/IngredientAutocompleter';
 import type { Mock } from 'vitest';
-import { searchIngredient } from "@/components/Nutrition/api/ingredient";
+import { searchIngredient, searchIngredientOff } from "@/components/Nutrition/api/ingredient";
 import { TEST_INGREDIENT_1, TEST_INGREDIENT_2, TEST_INGREDIENT_4 } from "@/tests/ingredientTestdata";
 import { testQueryClient } from "@/tests/queryClient";
 
@@ -29,9 +29,12 @@ describe("Test the IngredientAutocompleter component", () => {
 
     // Arrange
     beforeEach(() => {
+        vi.clearAllMocks();
         localStorage.clear();
         testQueryClient.clear();
         (searchIngredient as Mock).mockImplementation(() => Promise.resolve([TEST_INGREDIENT_1, TEST_INGREDIENT_2]));
+        // Default: no Open Food Facts results, so the OFF search effect is a no-op.
+        (searchIngredientOff as Mock).mockResolvedValue({ results: [], hasMore: false, page: 1 });
     });
 
     test('renders correct results', async () => {
@@ -288,5 +291,53 @@ describe("Test the IngredientAutocompleter component", () => {
             'Yog',
             expect.objectContaining({ nutriscoreMax: undefined }),
         ));
+    });
+
+    test('shows Open Food Facts results that are not in the library', async () => {
+        // Arrange
+        const user = userEvent.setup();
+        (searchIngredientOff as Mock).mockResolvedValue({
+            results: [
+                {
+                    code: '5556667778',
+                    name: 'Fage Total 0% Greek Yogurt',
+                    brand: 'Fage',
+                    imageUrl: null,
+                    nutriscore: 'b',
+                    energy: 59,
+                    existsLocally: false,
+                },
+            ],
+            hasMore: false,
+            page: 1,
+        });
+
+        // Act
+        renderAutocompleter();
+        const autocomplete = screen.getByTestId('autocomplete');
+        const input = within(autocomplete).getByRole('combobox');
+        await user.click(autocomplete);
+        await user.type(input, 'greek yogurt');
+
+        // Assert — the OFF product and its group header appear in the dropdown
+        await waitFor(() => expect(searchIngredientOff).toHaveBeenCalledWith('greek yogurt'));
+        expect(await screen.findByText('Fage Total 0% Greek Yogurt')).toBeInTheDocument();
+        expect(screen.getByText('Open Food Facts')).toBeInTheDocument();
+    });
+
+    test('does not query Open Food Facts for barcode input', async () => {
+        // Arrange
+        const user = userEvent.setup();
+        renderAutocompleter();
+        const autocomplete = screen.getByTestId('autocomplete');
+        const input = within(autocomplete).getByRole('combobox');
+
+        // Act — a barcode-shaped input uses the barcode flow, not OFF name search
+        await user.click(autocomplete);
+        await user.type(input, '5901234123457');
+
+        // Assert
+        await waitFor(() => expect(searchIngredient).toHaveBeenCalled());
+        expect(searchIngredientOff).not.toHaveBeenCalled();
     });
 });

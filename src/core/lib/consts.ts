@@ -83,6 +83,7 @@ export enum ApiPath {
     MEAL = 'meal',
     MEAL_ITEM = 'mealitem',
     NUTRITIONAL_DIARY = 'nutritiondiary',
+    INGREDIENT_PATH = 'ingredient',
     INGREDIENTINFO_PATH = 'ingredientinfo',
 
     // Routines

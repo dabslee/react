@@ -27,6 +27,7 @@ import {
     Typography,
 } from "@mui/material";
 import { Ingredient } from "@/components/Nutrition/models/Ingredient";
+import { OffSearchResult, searchIngredientOff } from "@/components/Nutrition/api/ingredient";
 import { makeLink, WgerLink } from "@/core/lib/url";
 import { useSearchIngredientQuery } from "@/components/Nutrition/queries";
 import { NutriScoreBadge } from "@/components/Nutrition/widgets/NutriScoreBadge";
@@ -50,6 +51,16 @@ export const STORAGE_KEY_VEGETARIAN = "wger.ingredientSearch.filterVegetarian";
 export const STORAGE_KEY_NUTRISCORE_MAX = "wger.ingredientSearch.filterNutriscoreMax";
 export const STORAGE_KEY_SIMILAR_SEARCH = "wger.ingredientSearch.similarSearch";
 export const SEARCH_DEBOUNCE_MS = 400;
+export const OFF_SEARCH_DEBOUNCE_MS = 600;
+
+// The autocomplete shows local ingredients and, in a separate group, products
+// found on Open Food Facts that aren't in the library yet. OFF options are
+// wrapped so we can tell the two apart in the option callbacks.
+type OffOption = { kind: 'off'; result: OffSearchResult };
+type AutocompleteOption = Ingredient | OffOption;
+
+const isOffOption = (option: AutocompleteOption): option is OffOption =>
+    (option as OffOption).kind === 'off';
 
 const NUTRISCORE_OFF_INDEX = 0;
 
@@ -95,6 +106,8 @@ export function IngredientAutocompleter({ callback, initialIngredient }: Ingredi
     const [inputValue, setInputValue] = useState("");
     const [options, setOptions] = useState<readonly Ingredient[]>([]);
     const [isLoading, setIsLoading] = useState(false);
+    const [offResults, setOffResults] = useState<OffSearchResult[]>([]);
+    const [offLoading, setOffLoading] = useState(false);
 
     useEffect(() => {
         if (i18n.language === LANGUAGE_SHORT_ENGLISH && languageFilter === "current_english") {
@@ -198,7 +211,46 @@ export function IngredientAutocompleter({ callback, initialIngredient }: Ingredi
         };
     }, [value, inputValue, fetchName]);
 
+    // Open Food Facts name search, in parallel with the local search. Only the
+    // products not already in the library are shown (existsLocally filtered),
+    // so the OFF group surfaces genuinely new ingredients to add.
+    const fetchOff = useMemo(
+        () =>
+            debounce((request: string) => {
+                searchIngredientOff(request)
+                    .then((res) => {
+                        setOffResults(res.results.filter((r) => !r.existsLocally));
+                        setOffLoading(false);
+                    })
+                    .catch(() => {
+                        setOffResults([]);
+                        setOffLoading(false);
+                    });
+            }, OFF_SEARCH_DEBOUNCE_MS),
+        []
+    );
+
     const isBarcodeInput = /^\d{8,14}$/.test(inputValue.trim());
+
+    useEffect(() => {
+        const query = inputValue.trim();
+
+        // Don't hit OFF for short inputs or all-numeric input (a barcode, whole
+        // or partial — barcodes have their own create flow, not name search).
+        if (query.length < 3 || /^\d+$/.test(query)) {
+            setOffResults([]);
+            setOffLoading(false);
+            fetchOff.cancel();
+            return undefined;
+        }
+
+        setOffLoading(true);
+        fetchOff(query);
+
+        return () => {
+            fetchOff.cancel();
+        };
+    }, [inputValue, fetchOff]);
 
     const noOptionsText = inputValue.length > 0 && inputValue.length < 3
         ? t("nutrition.typeAtLeast3Chars")
@@ -221,26 +273,49 @@ export function IngredientAutocompleter({ callback, initialIngredient }: Ingredi
     const isFiltersOpen = Boolean(filtersAnchorEl);
     const filtersPopoverId = isFiltersOpen ? "ingredient-filters-popover" : undefined;
 
+    const localGroupLabel = t("nutrition.yourLibrary", "Your library");
+    const offGroupLabel = t("nutrition.openFoodFacts", "Open Food Facts");
+
+    // Local ingredients first, then the OFF products as wrapped options.
+    const offOptions: OffOption[] = offResults.map((result) => ({ kind: 'off', result }));
+    const combinedOptions: AutocompleteOption[] = [...options, ...offOptions];
+
+    const navigateToOffAdd = (code: string) => {
+        window.location.href =
+            `${makeLink(WgerLink.INGREDIENT_ADD, i18n.language)}?code=${encodeURIComponent(code)}`;
+    };
+
     return (
         <Stack>
-            <Autocomplete
+            <Autocomplete<AutocompleteOption>
                 id="ingredient-autocomplete"
-                getOptionLabel={(option) => option.name}
+                getOptionLabel={(option) => isOffOption(option) ? option.result.name : option.name}
                 data-testid="autocomplete"
                 filterOptions={(x) => x}
-                options={options}
+                options={combinedOptions}
+                groupBy={offOptions.length > 0
+                    ? (option) => isOffOption(option) ? offGroupLabel : localGroupLabel
+                    : undefined}
                 autoComplete
                 includeInputInList
                 filterSelectedOptions
                 value={value}
-                loading={isLoading}
+                loading={isLoading || offLoading}
                 loadingText={t("nutrition.searching")}
                 noOptionsText={noOptionsText}
-                isOptionEqualToValue={(option, value) => option.id === value.id}
-                onChange={(event: unknown, newValue: Ingredient | null) => {
-                    setOptions(newValue ? [newValue, ...options] : options);
-                    setValue(newValue);
-                    callback(newValue);
+                isOptionEqualToValue={(option, val) =>
+                    !isOffOption(option) && !isOffOption(val) && option.id === val.id}
+                onChange={(event: unknown, newValue: AutocompleteOption | null) => {
+                    // Selecting an OFF product opens the add form prefilled by its
+                    // barcode (review serving size, then save) instead of selecting it.
+                    if (newValue && isOffOption(newValue)) {
+                        navigateToOffAdd(newValue.result.code);
+                        return;
+                    }
+                    const ingredientValue = newValue as Ingredient | null;
+                    setOptions(ingredientValue ? [ingredientValue, ...options] : options);
+                    setValue(ingredientValue);
+                    callback(ingredientValue);
                 }}
                 onInputChange={(event, newInputValue) => {
                     setInputValue(newInputValue);
@@ -288,7 +363,49 @@ export function IngredientAutocompleter({ callback, initialIngredient }: Ingredi
                         }}
                     />
                 )}
-                renderOption={(props, ingredient) => {
+                renderOption={(props, option) => {
+                    if (isOffOption(option)) {
+                        const off = option.result;
+                        return (
+                            <li {...props} key={`off-${off.code}`}>
+                                <ListItem disablePadding component="div">
+                                    <ListItemIcon>
+                                        <Avatar alt="" src={off.imageUrl ?? ''} variant="rounded">
+                                            <PhotoIcon />
+                                        </Avatar>
+                                    </ListItemIcon>
+                                    <ListItemText
+                                        primary={off.name}
+                                        secondary={off.brand ?? undefined}
+                                        slotProps={{
+                                            primary: {
+                                                sx: {
+                                                    whiteSpace: "nowrap",
+                                                    overflow: "hidden",
+                                                    textOverflow: "ellipsis",
+                                                },
+                                            },
+                                        }}
+                                    />
+                                    {off.nutriscore !== null && (
+                                        <Box sx={{ ml: 1 }}>
+                                            <NutriScoreBadge score={off.nutriscore} size="small" />
+                                        </Box>
+                                    )}
+                                    <Chip
+                                        icon={<AddCircleOutlineIcon />}
+                                        label={t("nutrition.addFromOff", "Add")}
+                                        color="primary"
+                                        variant="outlined"
+                                        size="small"
+                                        sx={{ ml: 1 }}
+                                    />
+                                </ListItem>
+                            </li>
+                        );
+                    }
+
+                    const ingredient = option;
                     return (
                         <li {...props} key={`ingredient-${ingredient.id}`}>
                             <ListItem disablePadding component="div">
