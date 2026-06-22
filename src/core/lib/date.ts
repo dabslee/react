@@ -4,10 +4,13 @@ import { DateTime, DateTimeFormatOptions } from "luxon";
 
 
 export function isSameDay(date1: Date, date2: Date): boolean {
+    // Compare UTC dates to stay consistent with how Django stores and filters
+    // datetimes (always UTC). Using local getDate() would mismatch the server's
+    // datetime__date filter near midnight for users west of UTC.
     return (
-        date1.getFullYear() === date2.getFullYear() &&
-        date1.getMonth() === date2.getMonth() &&
-        date1.getDate() === date2.getDate()
+        date1.getUTCFullYear() === date2.getUTCFullYear() &&
+        date1.getUTCMonth() === date2.getUTCMonth() &&
+        date1.getUTCDate() === date2.getUTCDate()
     );
 }
 
