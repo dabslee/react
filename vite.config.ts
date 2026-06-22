@@ -9,7 +9,10 @@ export default defineConfig(({ mode }) => {
         resolve: {},
         build: {
             outDir: 'build',
-            sourcemap: true,
+            // Source maps are opt-in (VITE_SOURCEMAP=true). They roughly double
+            // peak build memory (a ~14 MB map for this bundle), which OOMs the
+            // production build on the small self-host VM. Off by default.
+            sourcemap: process.env.VITE_SOURCEMAP === 'true',
             rollupOptions: {
                 output: {
                     entryFileNames: 'main.js',
