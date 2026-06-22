@@ -1,5 +1,30 @@
 import { Ingredient } from "@/components/Nutrition/models/Ingredient";
 import { NutritionWeightUnit } from "@/components/Nutrition/models/weightUnit";
+import { amountToGrams } from "@/core/lib/units";
+
+/*
+ * Resolve a logged amount + unit to a weight in grams. Single source of truth
+ * on the client, mirroring BaseMealItem.get_item_weight() on the server.
+ *
+ * Resolution order:
+ *   1. standard measuring unit (e.g. 'oz', 'cup') -- volume uses density
+ *   2. per-ingredient portion (weightUnit FK, e.g. "1 slice")
+ *   3. no unit -- amount is already in grams
+ */
+export function resolveItemWeight(
+    ingredient: Ingredient,
+    amount: number,
+    weightUnit: NutritionWeightUnit | null,
+    unit: string | null = null,
+): number {
+    if (unit) {
+        return amountToGrams(amount, unit, ingredient.density);
+    }
+    if (weightUnit) {
+        return amount * weightUnit.grams;
+    }
+    return amount;
+}
 
 type NutritionalValuesConstructor = {
     energy?: number;
@@ -69,12 +94,15 @@ export class NutritionalValues {
         this.bodyWeight = values?.bodyWeight ?? 0;
     }
 
-    static fromIngredient(ingredient: Ingredient, amount: number, weightUnit: NutritionWeightUnit | null) {
+    static fromIngredient(
+        ingredient: Ingredient,
+        amount: number,
+        weightUnit: NutritionWeightUnit | null,
+        unit: string | null = null,
+    ) {
         const out = new NutritionalValues();
 
-        const weight = weightUnit === null
-            ? amount
-            : amount * weightUnit.grams;
+        const weight = resolveItemWeight(ingredient, amount, weightUnit, unit);
 
         // divide by 100 because nutrition values are per 100g
         out.energy = ingredient.energy * weight / 100;

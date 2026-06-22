@@ -69,6 +69,9 @@ export interface ApiIngredientType {
     fat_saturated: string | null,
     fiber: string | null,
     sodium: string | null,
+    serving_weight_grams: string | null,
+    serving_volume_ml: string | null,
+    density: string | null,
     license: {
         id: number,
         full_name: string,

@@ -5,12 +5,14 @@ import { NutritionWeightUnit } from "@/components/Nutrition/models/weightUnit";
 import i18n from "@/i18n";
 import { Adapter } from "@/core/lib/Adapter";
 import { numberGramLocale } from "@/core/lib/numbers";
+import { unitLabel } from "@/core/lib/units";
 
 export interface ApiMealItemType {
     id: string,
     meal: string,
     ingredient: number,
     weight_unit: number,
+    unit: string | null,
     order: number,
     amount: string
 }
@@ -26,6 +28,7 @@ export type MealItemConstructorParams = {
 
     weightUnitId?: number | null;
     weightUnit?: NutritionWeightUnit | null;
+    unit?: string | null;
 };
 
 export class MealItem {
@@ -37,12 +40,14 @@ export class MealItem {
     public order: number;
     public ingredient: Ingredient | null = null;
     public weightUnit: NutritionWeightUnit | null = null;
+    public unit: string | null;
 
     constructor(params: MealItemConstructorParams) {
         this.id = params.id || null;
         this.mealId = params.mealId;
         this.amount = params.amount;
         this.order = params.order;
+        this.unit = params.unit ?? null;
 
         this.ingredientId = params.ingredientId;
         this.weightUnitId = params.weightUnitId ?? null;
@@ -57,6 +62,9 @@ export class MealItem {
     }
 
     get amountString(): string {
+        if (this.unit) {
+            return `${this.amount} ${unitLabel(this.unit)}`;
+        }
         if (this.weightUnit) {
             return `${this.amount.toFixed()} × ${this.weightUnit.name}`;
         }
@@ -65,7 +73,7 @@ export class MealItem {
 
     get nutritionalValues() {
         if (this.ingredient) {
-            return NutritionalValues.fromIngredient(this.ingredient, this.amount, this.weightUnit);
+            return NutritionalValues.fromIngredient(this.ingredient, this.amount, this.weightUnit, this.unit);
         }
         return new NutritionalValues();
     }
@@ -88,6 +96,7 @@ export class MealItem {
             ingredient,
             weightUnitId: weightUnit ? weightUnit.id : (overrides?.weightUnitId ?? other.weightUnitId),
             weightUnit,
+            unit: overrides?.unit ?? other.unit,
         });
     }
 
@@ -101,6 +110,7 @@ export class MealItem {
             ingredientId: this.ingredientId,
             weightUnitId: this.weightUnitId,
             weightUnit: this.weightUnit,
+            unit: this.unit,
         });
     }
 
@@ -117,6 +127,7 @@ class MealItemAdapter implements Adapter<MealItem> {
             mealId: item.meal,
             ingredientId: item.ingredient,
             weightUnitId: item.weight_unit,
+            unit: item.unit,
             amount: parseFloat(item.amount),
             order: item.order,
         });
@@ -130,6 +141,7 @@ class MealItemAdapter implements Adapter<MealItem> {
 
             // eslint-disable-next-line camelcase
             weight_unit: item.weightUnitId,
+            unit: item.unit,
             amount: item.amount.toString(),
             order: item.order,
         };

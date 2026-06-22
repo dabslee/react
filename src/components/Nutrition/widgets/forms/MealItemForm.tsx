@@ -8,12 +8,18 @@ import {
     useEditMealItemQuery,
 } from "@/components/Nutrition/queries";
 import { IngredientAutocompleter } from "@/components/Nutrition/widgets/IngredientAutocompleter";
+import {
+    MASS_UNIT_KEYS,
+    VOLUME_UNIT_KEYS,
+    unitLabel,
+} from "@/core/lib/units";
 import { Form, Formik } from "formik";
 import React, { useState } from 'react';
 import { useTranslation } from "react-i18next";
 import * as yup from "yup";
 
 const GRAM_UNIT_VALUE = 'g';
+const WEIGHT_UNIT_PREFIX = 'wu:';
 
 type MealItemFormProps =
     | { planId: string; item: MealItem; closeFn?: () => void; mealId?: string }
@@ -26,8 +32,14 @@ export const MealItemForm = ({ planId, item, mealId, closeFn }: MealItemFormProp
     const editMealItemQuery = useEditMealItemQuery(planId);
     const deleteMealItemQuery = useDeleteMealItemQuery(planId);
 
-    const [selectedUnit, setSelectedUnit] = useState<NutritionWeightUnit | null>(item?.weightUnit ?? null);
-    const [weightUnits, setWeightUnits] = useState<NutritionWeightUnit[]>(item?.ingredient?.weightUnits ?? []);
+    const initialUnitValue = item?.unit
+        ? item.unit
+        : item?.weightUnit
+            ? `${WEIGHT_UNIT_PREFIX}${item.weightUnit.id}`
+            : GRAM_UNIT_VALUE;
+    const [ingredient, setIngredient] = useState<Ingredient | null>(item?.ingredient ?? null);
+    const [unitValue, setUnitValue] = useState<string>(initialUnitValue);
+    const weightUnits = ingredient?.weightUnits ?? [];
 
     const handleDelete = () => {
         if (item) {
@@ -44,19 +56,24 @@ export const MealItemForm = ({ planId, item, mealId, closeFn }: MealItemFormProp
             .number()
             .required(t('forms.fieldRequired'))
             .max(1000, t('forms.maxValue', { value: '1000' }))
-            .min(1, t('forms.minValue', { value: '1' })),
+            .moreThan(0, t('forms.minValue', { value: '0' })),
         ingredient: yup
             .number()
             .required(t('forms.fieldRequired')),
     });
 
-    const handleUnitChange = (value: string) => {
+    const decodeUnitValue = (value: string): {
+        unit: string | null,
+        weightUnit: NutritionWeightUnit | null,
+    } => {
         if (value === GRAM_UNIT_VALUE) {
-            setSelectedUnit(null);
-        } else {
-            const unit = weightUnits.find(u => u.id === Number(value));
-            setSelectedUnit(unit ?? null);
+            return { unit: null, weightUnit: null };
         }
+        if (value.startsWith(WEIGHT_UNIT_PREFIX)) {
+            const id = Number(value.slice(WEIGHT_UNIT_PREFIX.length));
+            return { unit: null, weightUnit: weightUnits.find(u => u.id === id) ?? null };
+        }
+        return { unit: value, weightUnit: null };
     };
 
     return (
@@ -69,15 +86,17 @@ export const MealItemForm = ({ planId, item, mealId, closeFn }: MealItemFormProp
             onSubmit={async (values) => {
 
                 // Just to make sure we get a number
-                const newAmount = Math.round(values.amount);
+                const newAmount = Number(values.amount);
+                const { unit, weightUnit } = decodeUnitValue(unitValue);
 
                 if (item) {
                     // Edit
                     const newMealItem = MealItem.clone(item, {
                         amount: newAmount,
                         ingredientId: values.ingredient,
-                        weightUnitId: selectedUnit?.id ?? null,
-                        weightUnit: selectedUnit,
+                        weightUnitId: weightUnit?.id ?? null,
+                        weightUnit: weightUnit,
+                        unit: unit,
                     });
                     editMealItemQuery.mutate(newMealItem);
                 } else {
@@ -86,8 +105,9 @@ export const MealItemForm = ({ planId, item, mealId, closeFn }: MealItemFormProp
                         mealId: mealId!,
                         amount: newAmount,
                         ingredientId: values.ingredient,
-                        weightUnitId: selectedUnit?.id ?? null,
-                        weightUnit: selectedUnit,
+                        weightUnitId: weightUnit?.id ?? null,
+                        weightUnit: weightUnit,
+                        unit: unit,
                         order: 1,
                     }));
                 }
@@ -103,8 +123,8 @@ export const MealItemForm = ({ planId, item, mealId, closeFn }: MealItemFormProp
                         <IngredientAutocompleter
                             callback={(value: Ingredient | null) => {
                                 formik.setFieldValue('ingredient', value ? value.id : null);
-                                setWeightUnits(value?.weightUnits ?? []);
-                                setSelectedUnit(null);
+                                setIngredient(value);
+                                setUnitValue(GRAM_UNIT_VALUE);
                             }}
                             initialIngredient={item ? item.ingredient : null}
                         />
@@ -116,25 +136,34 @@ export const MealItemForm = ({ planId, item, mealId, closeFn }: MealItemFormProp
                                 input: {
                                     endAdornment: (
                                         <InputAdornment position="end">
-                                            {weightUnits.length > 0 ? (
-                                                <Select
-                                                    variant="standard"
-                                                    disableUnderline
-                                                    value={selectedUnit?.id?.toString() ?? GRAM_UNIT_VALUE}
-                                                    onChange={(e) => handleUnitChange(e.target.value)}
-                                                >
-                                                    <MenuItem value={GRAM_UNIT_VALUE}>
-                                                        {t('nutrition.gramShort')}
+                                            <Select
+                                                variant="standard"
+                                                disableUnderline
+                                                value={unitValue}
+                                                onChange={(e) => setUnitValue(e.target.value)}
+                                            >
+                                                <MenuItem value={GRAM_UNIT_VALUE}>
+                                                    {t('nutrition.gramShort')}
+                                                </MenuItem>
+                                                {MASS_UNIT_KEYS.filter(k => k !== GRAM_UNIT_VALUE).map(key => (
+                                                    <MenuItem key={key} value={key}>
+                                                        {unitLabel(key)}
                                                     </MenuItem>
-                                                    {weightUnits.map(unit => (
-                                                        <MenuItem key={unit.id} value={unit.id.toString()}>
-                                                            {unit.name} ({unit.grams}g)
-                                                        </MenuItem>
-                                                    ))}
-                                                </Select>
-                                            ) : (
-                                                t('nutrition.gramShort')
-                                            )}
+                                                ))}
+                                                {ingredient?.density != null && VOLUME_UNIT_KEYS.map(key => (
+                                                    <MenuItem key={key} value={key}>
+                                                        {unitLabel(key)}
+                                                    </MenuItem>
+                                                ))}
+                                                {weightUnits.map(unit => (
+                                                    <MenuItem
+                                                        key={unit.id}
+                                                        value={`${WEIGHT_UNIT_PREFIX}${unit.id}`}
+                                                    >
+                                                        {unit.name} ({unit.grams}g)
+                                                    </MenuItem>
+                                                ))}
+                                            </Select>
                                         </InputAdornment>
                                     )
                                 }

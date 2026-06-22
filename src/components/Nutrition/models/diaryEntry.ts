@@ -4,6 +4,7 @@ import { NutritionWeightUnit } from "@/components/Nutrition/models/weightUnit";
 import i18n from "@/i18n";
 import { Adapter } from "@/core/lib/Adapter";
 import { numberGramLocale } from "@/core/lib/numbers";
+import { unitLabel } from "@/core/lib/units";
 
 export interface ApiNutritionDiaryType {
     id: string,
@@ -11,6 +12,7 @@ export interface ApiNutritionDiaryType {
     meal: string | null,
     ingredient: number,
     weight_unit: number,
+    unit: string | null,
     datetime: Date,
     amount: string
 }
@@ -21,6 +23,7 @@ export type DiaryEntryConstructorParams = {
     mealId?: string | null;
     ingredientId: number;
     weightUnitId?: number | null;
+    unit?: string | null;
     amount: number;
     datetime: Date;
     ingredient?: Ingredient | null;
@@ -39,6 +42,7 @@ export class DiaryEntry {
     public ingredient: Ingredient | null = null;
     public weightUnitId: number | null;
     public weightUnit: NutritionWeightUnit | null = null;
+    public unit: string | null;
 
 
     constructor(params: DiaryEntryConstructorParams) {
@@ -47,6 +51,7 @@ export class DiaryEntry {
         this.mealId = params.mealId ?? null;
         this.amount = params.amount;
         this.datetime = params.datetime;
+        this.unit = params.unit ?? null;
 
         this.ingredientId = params.ingredientId;
         if (params.ingredient) {
@@ -62,6 +67,9 @@ export class DiaryEntry {
     }
 
     get amountString(): string {
+        if (this.unit) {
+            return `${this.amount} ${unitLabel(this.unit)}`;
+        }
         if (this.weightUnit) {
             return `${this.amount.toFixed()} × ${this.weightUnit.name}`;
         }
@@ -70,7 +78,7 @@ export class DiaryEntry {
 
     get nutritionalValues() {
         if (this.ingredient) {
-            return NutritionalValues.fromIngredient(this.ingredient, this.amount, this.weightUnit);
+            return NutritionalValues.fromIngredient(this.ingredient, this.amount, this.weightUnit, this.unit);
         }
         return new NutritionalValues();
     }
@@ -89,6 +97,7 @@ export class DiaryEntry {
             ingredient,
             weightUnitId: weightUnit ? weightUnit.id : (overrides?.weightUnitId ?? other.weightUnitId),
             weightUnit,
+            unit: overrides?.unit ?? other.unit,
         });
     }
 
@@ -110,6 +119,7 @@ class DiaryEntryAdapter implements Adapter<DiaryEntry> {
             mealId: item.meal,
             ingredientId: item.ingredient,
             weightUnitId: item.weight_unit,
+            unit: item.unit,
             amount: parseFloat(item.amount),
             datetime: new Date(item.datetime),
         });
@@ -123,6 +133,7 @@ class DiaryEntryAdapter implements Adapter<DiaryEntry> {
 
             // eslint-disable-next-line camelcase
             weight_unit: item.weightUnitId,
+            unit: item.unit,
             amount: item.amount.toString(),
             datetime: item.datetime.toISOString(),
         };

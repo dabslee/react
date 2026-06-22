@@ -17,6 +17,9 @@ export type IngredientConstructorParams = {
     fatSaturated: number | null;
     fiber: number | null;
     sodium: number | null;
+    servingWeightGrams?: number | null;
+    servingVolumeMl?: number | null;
+    density?: number | null;
     isVegan?: boolean | null;
     isVegetarian?: boolean | null;
     nutriscore?: NutriScoreValue | null;
@@ -39,6 +42,9 @@ export class Ingredient {
     public fatSaturated: number | null;
     public fiber: number | null;
     public sodium: number | null;
+    public servingWeightGrams: number | null;
+    public servingVolumeMl: number | null;
+    public density: number | null;
     public isVegan: boolean | null;
     public isVegetarian: boolean | null;
     public nutriscore: NutriScoreValue | null;
@@ -59,6 +65,9 @@ export class Ingredient {
         this.fatSaturated = params.fatSaturated;
         this.fiber = params.fiber;
         this.sodium = params.sodium;
+        this.servingWeightGrams = params.servingWeightGrams ?? null;
+        this.servingVolumeMl = params.servingVolumeMl ?? null;
+        this.density = params.density ?? null;
         this.isVegan = params.isVegan ?? null;
         this.isVegetarian = params.isVegetarian ?? null;
         this.nutriscore = params.nutriscore ?? null;
@@ -89,6 +98,9 @@ class IngredientAdapter implements Adapter<Ingredient> {
             fatSaturated: item.fat_saturated === null ? null : parseFloat(item.fat_saturated),
             fiber: item.fiber === null ? null : parseFloat(item.fiber),
             sodium: item.sodium === null ? null : parseFloat(item.sodium),
+            servingWeightGrams: item.serving_weight_grams == null ? null : parseFloat(item.serving_weight_grams),
+            servingVolumeMl: item.serving_volume_ml == null ? null : parseFloat(item.serving_volume_ml),
+            density: item.density == null ? null : parseFloat(item.density),
             isVegan: item.is_vegan,
             isVegetarian: item.is_vegetarian,
             nutriscore: item.nutriscore,
