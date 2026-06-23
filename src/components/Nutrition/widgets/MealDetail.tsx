@@ -22,6 +22,8 @@ import { MealItem } from "@/components/Nutrition/models/mealItem";
 import {
     NutritionalValuesPlannedLoggedChart
 } from "@/components/Nutrition/widgets/charts/NutritionalValuesPlannedLoggedChart";
+import { DiaryEntry } from "@/components/Nutrition/models/diaryEntry";
+import { useDeleteDiaryEntryQuery } from "@/components/Nutrition/queries/diary";
 import { MealItemForm } from "@/components/Nutrition/widgets/forms/MealItemForm";
 import { NutritionDiaryEntryForm } from "@/components/Nutrition/widgets/forms/NutritionDiaryEntryForm";
 import { IngredientDetailTable } from "@/components/Nutrition/widgets/IngredientDetailTable";
@@ -81,6 +83,13 @@ export const MealDetail = (props: { meal: Meal, planId: string, onlyLogging: boo
         setExpandItemForm(false);
     };
 
+    const deleteDiaryEntry = useDeleteDiaryEntryQuery(props.planId);
+    const handleDeleteDiaryEntry = (item: MealItem | DiaryEntry) => {
+        if (item.id && window.confirm(t('nutrition.confirmDeleteDiaryEntry', 'Remove this entry from your diary?'))) {
+            deleteDiaryEntry.mutate(item.id);
+        }
+    };
+
     return <Card>
         <CardHeader
             sx={{ bgcolor: theme.palette.grey["300"] }}
@@ -116,6 +125,7 @@ export const MealDetail = (props: { meal: Meal, planId: string, onlyLogging: boo
                     showSum={props.meal.isRealMeal}
                     items={props.meal.diaryEntriesToday}
                     values={props.meal.loggedNutritionalValuesToday}
+                    onDelete={handleDeleteDiaryEntry}
                 />
 
             </Collapse>

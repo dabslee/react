@@ -1,6 +1,9 @@
 import { LoadingPlaceholder } from "@/core/ui/LoadingWidget/LoadingWidget";
 import { WgerContainerRightSidebar } from "@/core/ui/Widgets/Container";
+import { DiaryEntry } from "@/components/Nutrition/models/diaryEntry";
+import { MealItem } from "@/components/Nutrition/models/mealItem";
 import { useFetchNutritionalPlanDateQuery } from "@/components/Nutrition/queries";
+import { useDeleteDiaryEntryQuery } from "@/components/Nutrition/queries/diary";
 import { IngredientDetailTable } from "@/components/Nutrition/widgets/IngredientDetailTable";
 import {
     LoggedPlannedNutritionalValuesTable
@@ -24,6 +27,14 @@ export const NutritionDiaryOverview = () => {
     const date = parseLocalDate(params.date!);
     // eslint-disable-next-line react-hooks/rules-of-hooks
     const planQuery = useFetchNutritionalPlanDateQuery(planId, params.date!);
+    // eslint-disable-next-line react-hooks/rules-of-hooks
+    const deleteEntry = useDeleteDiaryEntryQuery(planId);
+
+    const handleDelete = (item: MealItem | DiaryEntry) => {
+        if (item.id && window.confirm(t('nutrition.confirmDeleteDiaryEntry', 'Remove this entry from your diary?'))) {
+            deleteEntry.mutate(item.id);
+        }
+    };
 
     return planQuery.isLoading
         ? <LoadingPlaceholder />
@@ -41,6 +52,7 @@ export const NutritionDiaryOverview = () => {
                     <IngredientDetailTable
                         values={planQuery.data!.loggedNutritionalValuesDate(date)}
                         items={planQuery.data!.loggedEntriesDate(date)}
+                        onDelete={handleDelete}
                         showSum={true} />
 
                 </Stack>
