@@ -14,6 +14,7 @@ import { useTranslation } from "react-i18next";
 import { dateToYYYYMMDD } from "@/core/lib/date";
 import {
     MASS_UNIT_KEYS,
+    SERVING_UNIT_KEY,
     VOLUME_UNIT_KEYS,
     unitLabel,
 } from "@/core/lib/units";
@@ -164,6 +165,11 @@ export const NutritionDiaryEntryForm = ({ planId, entry, mealId, meals, closeFn 
                                                 <MenuItem value={GRAM_UNIT_VALUE}>
                                                     {t('nutrition.gramShort')}
                                                 </MenuItem>
+                                                {ingredient?.servingWeightGrams != null && (
+                                                    <MenuItem value={SERVING_UNIT_KEY}>
+                                                        {t('nutrition.serving', 'serving')} ({ingredient.servingWeightGrams}g)
+                                                    </MenuItem>
+                                                )}
                                                 {MASS_UNIT_KEYS.filter(k => k !== GRAM_UNIT_VALUE).map(key => (
                                                     <MenuItem key={key} value={key}>
                                                         {unitLabel(key)}

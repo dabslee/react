@@ -27,7 +27,7 @@ import {
     Typography,
 } from "@mui/material";
 import { Ingredient } from "@/components/Nutrition/models/Ingredient";
-import { OffSearchResult, searchIngredientOff } from "@/components/Nutrition/api/ingredient";
+import { getIngredient, OffSearchResult, searchIngredientOff } from "@/components/Nutrition/api/ingredient";
 import { makeLink, WgerLink } from "@/core/lib/url";
 import { useSearchIngredientQuery } from "@/components/Nutrition/queries";
 import { NutriScoreBadge } from "@/components/Nutrition/widgets/NutriScoreBadge";
@@ -61,6 +61,12 @@ type AutocompleteOption = Ingredient | OffOption;
 
 const isOffOption = (option: AutocompleteOption): option is OffOption =>
     (option as OffOption).kind === 'off';
+
+// When an OFF "add ingredient" modal is opened from one autocompleter, only
+// that instance should adopt the resulting new ingredient (the wgerModalSuccess
+// event is global on document.body). The opener registers its adopt callback
+// here; the first listener to run consumes it.
+let pendingOffAddAdopt: ((ingredientId: number) => void) | null = null;
 
 const NUTRISCORE_OFF_INDEX = 0;
 
@@ -294,12 +300,40 @@ export function IngredientAutocompleter({ callback, initialIngredient }: Ingredi
         const modalEl = document.getElementById('wger-ajax-info');
 
         if (htmx && bootstrap && modalEl) {
+            // After the modal saves the new ingredient, adopt it here: fetch it
+            // by id and select it, so the user can use it without re-searching.
+            pendingOffAddAdopt = (ingredientId: number) => {
+                getIngredient(ingredientId)
+                    .then((ingredient) => {
+                        setOptions([ingredient]);
+                        setValue(ingredient);
+                        callback(ingredient);
+                    })
+                    .catch(() => { /* ignore — user can still search */ });
+            };
             htmx.ajax('GET', url, '#ajax-info-content');
             bootstrap.Modal.getOrCreateInstance(modalEl).show();
         } else {
             window.location.href = url;
         }
     };
+
+    // Adopt the ingredient created by the OFF "add" modal (the wgerModalSuccess
+    // event carries its id). Only the opener's registered callback runs.
+    useEffect(() => {
+        const onModalSuccess = (event: Event) => {
+            const detail = (event as CustomEvent).detail;
+            const id = detail && Number(detail.ingredientId);
+            if (id && pendingOffAddAdopt) {
+                const adopt = pendingOffAddAdopt;
+                pendingOffAddAdopt = null;
+                adopt(id);
+            }
+        };
+        document.body.addEventListener('wgerModalSuccess', onModalSuccess);
+        return () => document.body.removeEventListener('wgerModalSuccess', onModalSuccess);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
 
     return (
         <Stack>

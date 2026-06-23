@@ -63,6 +63,10 @@ export const MEASUREMENT_UNITS: Record<string, MeasurementUnit> = {
 export const MASS_UNIT_KEYS = Object.keys(MASS_FACTORS);
 export const VOLUME_UNIT_KEYS = Object.keys(VOLUME_FACTORS);
 
+// A "serving" is ingredient-relative (1 serving = serving_weight_grams), not a
+// fixed measuring unit, so it's not in MEASUREMENT_UNITS. Mirrors the server.
+export const SERVING_UNIT_KEY = "serving";
+
 // Short human labels for each unit key (abbreviations, largely locale-neutral).
 export const UNIT_LABELS: Record<string, string> = {
     mg: "mg",
@@ -79,6 +83,7 @@ export const UNIT_LABELS: Record<string, string> = {
     pint: "pt",
     quart: "qt",
     gallon: "gal",
+    [SERVING_UNIT_KEY]: "serving",
 };
 
 export function unitLabel(key: string): string {

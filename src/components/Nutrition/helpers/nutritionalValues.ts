@@ -1,15 +1,16 @@
 import { Ingredient } from "@/components/Nutrition/models/Ingredient";
 import { NutritionWeightUnit } from "@/components/Nutrition/models/weightUnit";
-import { amountToGrams } from "@/core/lib/units";
+import { SERVING_UNIT_KEY, amountToGrams } from "@/core/lib/units";
 
 /*
  * Resolve a logged amount + unit to a weight in grams. Single source of truth
  * on the client, mirroring BaseMealItem.get_item_weight() on the server.
  *
  * Resolution order:
- *   1. standard measuring unit (e.g. 'oz', 'cup') -- volume uses density
- *   2. per-ingredient portion (weightUnit FK, e.g. "1 slice")
- *   3. no unit -- amount is already in grams
+ *   1. 'serving' -- amount × the ingredient's servingWeightGrams
+ *   2. standard measuring unit (e.g. 'oz', 'cup') -- volume uses density
+ *   3. per-ingredient portion (weightUnit FK, e.g. "1 slice")
+ *   4. no unit -- amount is already in grams
  */
 export function resolveItemWeight(
     ingredient: Ingredient,
@@ -17,6 +18,9 @@ export function resolveItemWeight(
     weightUnit: NutritionWeightUnit | null,
     unit: string | null = null,
 ): number {
+    if (unit === SERVING_UNIT_KEY) {
+        return amount * (ingredient.servingWeightGrams ?? 0);
+    }
     if (unit) {
         return amountToGrams(amount, unit, ingredient.density);
     }
