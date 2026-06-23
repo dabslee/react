@@ -280,9 +280,25 @@ export function IngredientAutocompleter({ callback, initialIngredient }: Ingredi
     const offOptions: OffOption[] = offResults.map((result) => ({ kind: 'off', result }));
     const combinedOptions: AutocompleteOption[] = [...options, ...offOptions];
 
-    const navigateToOffAdd = (code: string) => {
-        window.location.href =
+    // Open the "add ingredient" form (prefilled from the OFF barcode) in the
+    // shared htmx modal — same modal the rest of the site uses — instead of
+    // navigating away. Falls back to a full-page redirect if the modal/htmx
+    // globals aren't available.
+    const openOffAddModal = (code: string) => {
+        const url =
             `${makeLink(WgerLink.INGREDIENT_ADD, i18n.language)}?code=${encodeURIComponent(code)}`;
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const htmx = (window as any).htmx;
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const bootstrap = (window as any).bootstrap;
+        const modalEl = document.getElementById('wger-ajax-info');
+
+        if (htmx && bootstrap && modalEl) {
+            htmx.ajax('GET', url, '#ajax-info-content');
+            bootstrap.Modal.getOrCreateInstance(modalEl).show();
+        } else {
+            window.location.href = url;
+        }
     };
 
     return (
@@ -309,7 +325,7 @@ export function IngredientAutocompleter({ callback, initialIngredient }: Ingredi
                     // Selecting an OFF product opens the add form prefilled by its
                     // barcode (review serving size, then save) instead of selecting it.
                     if (newValue && isOffOption(newValue)) {
-                        navigateToOffAdd(newValue.result.code);
+                        openOffAddModal(newValue.result.code);
                         return;
                     }
                     const ingredientValue = newValue as Ingredient | null;
